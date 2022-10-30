@@ -27,6 +27,7 @@
 //-------------------------------------
 #define MSG_LEN 9
 #define SLAVE_ADDR 0x8
+#define NS_IN_SEC = 1E9;
 
 //-------------------------------------
 //-  Global Variables
@@ -34,6 +35,10 @@
 float speed = 0.0;
 struct timespec time_msg = {0,400000000};
 int fd_serie = -1;
+int gas = 0;
+int brake = 0;
+int mix = 0;
+int mixer_crono = 0;
 
 //-------------------------------------
 //-  Function: read_msg
@@ -152,17 +157,172 @@ int task_slope()
 }
 
 //-------------------------------------
+//-  Function: task_gas
+//-------------------------------------
+int task_gas ()
+{
+    char request[MSG_LEN+1];
+    char answer[MSG_LEN+1];
+
+    memset(request,'\0',MSG_LEN+1);
+    memset(answer,'\0',MSG_LEN+1);
+
+    //Gas function
+
+    if (speed >  55)
+    {
+        strcpy(request, "GAS: CLR\n");
+        gas = 1;
+    }
+    else 
+    {
+        strcpy(request, "GAS: SET\n");
+        gas = 0;
+    }
+
+    #if defined(ARDUINO)
+        // use UART serial module
+        write(fd_serie, request, MSG_LEN);
+        nanosleep(&time_msg, NULL);
+        read_msg(fd_serie, answer, MSG_LEN);
+    #else
+    //Use the simulator
+        simulator(request, answer);
+    #endif
+
+    if (1 == sscanf (answer, "GAS:%f\n", &gas)){
+        displayGas(gas);
+    }
+
+    return 0;
+}
+
+//-------------------------------------
+//-  Function: task_brake
+//-------------------------------------
+int task_brake ()
+{
+    char request[MSG_LEN+1];
+    char answer[MSG_LEN+1];
+
+    memset(request,'\0',MSG_LEN+1);
+    memset(answer,'\0',MSG_LEN+1);
+
+    //Brake Function
+
+    if (speed > 55)
+    {
+        strcpy(request, "BRK: SET\n");
+    	brake = 1;
+    }
+    else
+    {
+        strcpy(request, "BRK: CLR\n");
+    	brake = 0;
+    }
+
+    #if defined(ARDUINO)
+        // use UART serial module
+        write(fd_serie, request, MSG_LEN);
+        nanosleep(&time_msg, NULL);
+        read_msg(fd_serie, answer, MSG_LEN);
+    #else
+    //Use the simulator
+        simulator(request, answer);
+    #endif
+
+    if (1 == sscanf (answer, "BRK:%f\n", &brake)){
+        displayBrake(brake);
+    }
+
+    return 0;
+}
+
+
+//-------------------------------------
+//-  Function: task_mixer
+//-------------------------------------
+
+int task_mixer ()
+{
+    char request[MSG_LEN+1];
+    char answer[MSG_LEN+1];
+
+    memset(request,'\0',MSG_LEN+1);
+    memset(answer,'\0',MSG_LEN+1);
+
+    //Mixer Function
+
+    if (mixer_crono >= 40) //Cuando llegamos a los 40 s se hacen cosas, valor válido al estar en 30 y 60 secs
+    {
+        if (mix == 0) // Hora de trabajar
+        {
+            strcpy(request, "MIX: SET\n");
+            mix = 1;
+        }
+
+        else // Hora de descansar
+        {
+            strcpy(request, "MIX: CLR\n");
+            mix = 0;
+        }
+
+        mixer_crono = 0; //En otros 40 secs volvemos aquí
+    }
+
+
+    #if defined(ARDUINO)
+        // use UART serial module
+        write(fd_serie, request, MSG_LEN);
+        nanosleep(&time_msg, NULL);
+        read_msg(fd_serie, answer, MSG_LEN);
+    #else
+    //Use the simulator
+        simulator(request, answer);
+    #endif
+
+    if (1 == sscanf (answer, "MIX:%f\n", &mixer)){
+        displayMix(mix);
+    }
+
+
+    return 0;
+}
+
+//-------------------------------------
 //-  Function: controller
 //-------------------------------------
 void *controller(void *arg)
 {
+    long time_passed = 0;
+    struct timespec start, end;
+    
     // Endless loop
-    while(1) {
+    while(1) { 
+    /*CP = 10 , CS = 10 , TC = 0.9 * 5 = 4,5s y se cumple TC <= T = D, un solo ciclo
+    Para ello hemos acotado todas las tareas a T = D = 10 */
+
+        clock_gettime (CLOCK_MONOTONIC, &start); //Inicio del tiempo del bucle
+        
         // calling task of speed
         task_speed();
 
         // calling task of slope
         task_slope();
+
+        //calling task of gas
+        task_gas();
+
+        //calling task of brake
+        task_brake();
+
+        //calling task of mixer
+        task_mixer();
+
+        clock_gettime(CLOCK_MONOTONIC,&end); //Fin tiempo del bucle
+        time_passed = (end.tv_sec - start.tv_sec) + (end.tv_nsec - start.tv_nsec)/NS_IN_SEC; // Segundos + nanosegundos
+        sleep (10 - time_passed); //Duermo el bucle hasta terminar el periodo, para evitar acarreo de errores
+        mixer_crono += 10; 
     }
 }
 
