@@ -300,7 +300,7 @@ void *controller(void *arg)
     // Endless loop
     while(1) { 
     /*CP = 10 , CS = 10 , TC = 0.9 * 5 = 4,5s y se cumple TC <= T = D, un solo ciclo
-    Para ello hemos acotado todas las tareas a T = D = 10 */
+    Para ello hemos acotado todas las tareas a T = D = 10, esto también cumple el teorema del muestreo */
 
         clock_gettime (CLOCK_MONOTONIC, &start); //Inicio del tiempo del bucle
         
