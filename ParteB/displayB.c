@@ -326,7 +326,7 @@ int cambiarTramos (struct control_data_backup_t *data)
     int inc, nuevoTramoInicial;
     int i, pos;
     
-    // calcuoalr cuantos pasos ha avanzado desde la œltima vez
+    // calcuoalr cuantos pasos ha avanzado desde la ï¿½ltima vez
     nuevoTramoInicial = data->step % SC_LINEA_SIZE;
     if (nuevoTramoInicial >= data->tramoInicial) {
         inc = nuevoTramoInicial - data->tramoInicial;
@@ -351,7 +351,7 @@ int cambiarTramos (struct control_data_backup_t *data)
                 data->tramosPantalla [pos][0] = -1;
                 data->tramosPantalla [pos][1] = 2;
             }
-            // down dark
+            // down light
         } else if ( (4 > data->plain_up_down) && (0 != data->isDark) ) {
             if (0 == (data->step+i) % 2) {
                 data->tramosPantalla [pos][0] = 0;
@@ -364,7 +364,7 @@ int cambiarTramos (struct control_data_backup_t *data)
         } else if ( (7 > data->plain_up_down) && (0 == data->isDark) ) {
             data->tramosPantalla [pos][0] = 0;
             data->tramosPantalla [pos][1] = 0;
-            // plain dark
+            // plain light
         } else if ( (7 > data->plain_up_down) && (0 != data->isDark) ) {
             data->tramosPantalla [pos][0] = 0;
             data->tramosPantalla [pos][1] = 3;
@@ -377,7 +377,7 @@ int cambiarTramos (struct control_data_backup_t *data)
                 data->tramosPantalla [pos][0] = 1;
                 data->tramosPantalla [pos][1] = 1;
             }
-            // up dark
+            // up light
         } else if (0 != data->isDark) {
             if (0 == (data->step+i) % 2) {
                 data->tramosPantalla [pos][0] = 0;
@@ -945,7 +945,7 @@ int initShared (struct comand_data_t *cmd)
 //---------------------------------------------------------------------------
 /**********************************************************
  *  Function: displayInit
- *  Parameters: signalRT = numero de se–al
+ *  Parameters: signalRT = numero de seï¿½al
  entre SIGRTMIN y SIGRTMIN
  *********************************************************/
 int displayInit(int signalRT)
@@ -1373,7 +1373,7 @@ int simulator(char request[10], char answer[10])
             strcpy (answer,"MSG: ERR\n");
         }
         
-        // peticiones de informaci—n, devolver algo
+        // peticiones de informaciï¿½n, devolver algo
     } else if (0 == strcmp(request,"SPD: REQ\n")) {
         // devolver velocidad
         simul_mod(&simulData);

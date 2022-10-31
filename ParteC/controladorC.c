@@ -27,6 +27,7 @@
 //-------------------------------------
 #define MSG_LEN 9
 #define SLAVE_ADDR 0x8
+#define NS_IN_SEC 1E9
 
 //-------------------------------------
 //-  Global Variables
@@ -34,6 +35,12 @@
 float speed = 0.0;
 struct timespec time_msg = {0,400000000};
 int fd_serie = -1;
+int gas = 0;
+int brake = 0;
+int mix = 0;
+int mixer_crono = 0;
+int light = 0;
+int light_val = 0;
 
 //-------------------------------------
 //-  Function: read_msg
@@ -149,6 +156,209 @@ int task_slope()
     if (0 == strcmp(answer, "SLP:  UP\n")) displaySlope(1);
 
     return 0;
+}
+
+//-------------------------------------
+//-  Function: task_gas
+//-------------------------------------
+int task_gas ()
+{
+    char request[MSG_LEN+1];
+    char answer[MSG_LEN+1];
+
+    memset(request,'\0',MSG_LEN+1);
+    memset(answer,'\0',MSG_LEN+1);
+
+    //Gas function
+
+    if (speed >  55)
+    {
+        strcpy(request, "GAS: CLR\n");
+        gas = 0;
+    }
+    else 
+    {
+        strcpy(request, "GAS: SET\n");
+        gas = 1;
+    }
+
+    #if defined(ARDUINO)
+        // use UART serial module
+        write(fd_serie, request, MSG_LEN);
+        nanosleep(&time_msg, NULL);
+        read_msg(fd_serie, answer, MSG_LEN);
+    #else
+    //Use the simulator
+        simulator(request, answer);
+    #endif
+
+    displayGas(gas);
+
+    return 0;
+}
+
+//-------------------------------------
+//-  Function: task_brake
+//-------------------------------------
+int task_brake ()
+{
+    char request[MSG_LEN+1];
+    char answer[MSG_LEN+1];
+
+    memset(request,'\0',MSG_LEN+1);
+    memset(answer,'\0',MSG_LEN+1);
+
+    //Brake Function
+
+    if (speed > 55)
+    {
+        strcpy(request, "BRK: SET\n");
+    	brake = 1;
+    }
+    else
+    {
+        strcpy(request, "BRK: CLR\n");
+    	brake = 0;
+    }
+
+    #if defined(ARDUINO)
+        // use UART serial module
+        write(fd_serie, request, MSG_LEN);
+        nanosleep(&time_msg, NULL);
+        read_msg(fd_serie, answer, MSG_LEN);
+    #else
+    //Use the simulator
+        simulator(request, answer);
+    #endif
+
+  
+    displayBrake(brake);
+
+
+    return 0;
+}
+
+
+//-------------------------------------
+//-  Function: task_mixer
+//-------------------------------------
+
+int task_mixer ()
+{
+    char request[MSG_LEN+1];
+    char answer[MSG_LEN+1];
+
+    memset(request,'\0',MSG_LEN+1);
+    memset(answer,'\0',MSG_LEN+1);
+
+    //Mixer Function
+
+    if (mixer_crono >= 40) //Cuando llegamos a los 40 s se hacen cosas, valor válido al estar en 30 y 60 secs
+    {
+        if (mix == 0) // Hora de trabajar
+        {
+            strcpy(request, "MIX: SET\n");
+            mix = 1;
+        }
+
+        else // Hora de descansar
+        {
+            strcpy(request, "MIX: CLR\n");
+            mix = 0;
+        }
+
+        mixer_crono = 0; //En otros 40 secs volvemos aquí
+    }
+
+
+    #if defined(ARDUINO)
+        // use UART serial module
+        write(fd_serie, request, MSG_LEN);
+        nanosleep(&time_msg, NULL);
+        read_msg(fd_serie, answer, MSG_LEN);
+    #else
+    //Use the simulator
+        simulator(request, answer);
+    #endif
+
+    displayMix(mix);
+
+    return 0;
+}
+
+//-------------------------------------
+//-  Function: light_sensor
+//-------------------------------------
+int task_ligth_sensor()
+{
+    char request[MSG_LEN+1];
+    char answer[MSG_LEN+1];
+
+    memset(request,'\0',MSG_LEN+1);
+    memset(answer,'\0',MSG_LEN+1);
+
+    // request light
+    strcpy(request, "LIT: REQ\n");
+
+    #if defined(ARDUINO)
+        // use UART serial module
+        write(fd_serie, request, MSG_LEN);
+        nanosleep(&time_msg, NULL);
+        read_msg(fd_serie, answer, MSG_LEN);
+    #else
+        //Use the simulator
+        simulator(request, answer);
+    #endif
+    if (1 == sscanf (answer, "LIT: %i\n", &light_val)){
+        
+        if(light_val <= 50)
+        {
+            light=1;
+        }
+        else
+        {
+            light=0;
+        }
+        displayLightSensor(light);
+    }
+    
+    return 0;
+}
+
+//-------------------------------------
+//-  Function: task_lamp
+//-------------------------------------
+int task_lamp()
+{
+    char request[MSG_LEN+1];
+    char answer[MSG_LEN+1];
+
+    memset(request,'\0',MSG_LEN+1);
+    memset(answer,'\0',MSG_LEN+1);
+
+    //Lamp function
+
+    if (light == 1)
+    {
+    	strcpy(request, "LAM: SET\n");
+    }
+    else
+    {
+    	strcpy(request, "LAM: CLR\n");
+    }
+
+    #if defined(ARDUINO)
+        // use UART serial module
+        write(fd_serie, request, MSG_LEN);
+        nanosleep(&time_msg, NULL);
+        read_msg(fd_serie, answer, MSG_LEN);
+    #else
+    //Use the simulator
+        simulator(request, answer);
+    
+    #endif
+        displayLamps(light);
+        return 0;
 }
 
 //-------------------------------------
