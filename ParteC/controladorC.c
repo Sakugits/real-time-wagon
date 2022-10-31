@@ -336,6 +336,7 @@ int task_ligth_sensor()
 //-------------------------------------
 //-  Function: task_lamp
 //-------------------------------------
+
 int task_lamp()
 {
     char request[MSG_LEN+1];
@@ -410,7 +411,142 @@ int task_check_current_distance()
     return 0;
 }
 
-//--------------- MODOS DE EJECUCIÓN --------------
+// Modo Frenado Tasks
+
+int task_gas_modo_frenado ()
+{
+    char request[MSG_LEN+1];
+    char answer[MSG_LEN+1];
+
+    memset(request,'\0',MSG_LEN+1);
+    memset(answer,'\0',MSG_LEN+1);
+
+    //Gas function
+
+    if (speed >  2.5)
+    {
+        strcpy(request, "GAS: CLR\n");
+        gas = 0;
+    }
+    else 
+    {
+        strcpy(request, "GAS: SET\n");
+        gas = 1;
+    }
+
+    #if defined(ARDUINO)
+        // use UART serial module
+        write(fd_serie, request, MSG_LEN);
+        nanosleep(&time_msg, NULL);
+        read_msg(fd_serie, answer, MSG_LEN);
+    #else
+        //Use the simulator
+        simulator(request, answer);
+    #endif
+
+        displayGas(gas);
+
+    return 0;
+}
+
+int task_brake_modo_frenado ()
+{
+    char request[MSG_LEN+1];
+    char answer[MSG_LEN+1];
+
+    memset(request,'\0',MSG_LEN+1);
+    memset(answer,'\0',MSG_LEN+1);
+
+    //Brake Function
+
+    if (speed > 2.5)
+    {
+        strcpy(request, "BRK: SET\n");
+    	brake = 1;
+    }
+    else
+    {
+        strcpy(request, "BRK: CLR\n");
+    	brake = 0;
+    }
+
+    #if defined(ARDUINO)
+        // use UART serial module
+        write(fd_serie, request, MSG_LEN);
+        nanosleep(&time_msg, NULL);
+        read_msg(fd_serie, answer, MSG_LEN);
+    #else
+        //Use the simulator
+        simulator(request, answer);
+    #endif
+
+        displayBrake(brake);
+    
+    return 0;
+}
+
+int task_lamp_not_normal()
+{
+    char request[MSG_LEN+1];
+    char answer[MSG_LEN+1];
+
+    memset(request,'\0',MSG_LEN+1);
+    memset(answer,'\0',MSG_LEN+1);
+
+    strcpy(request, "LAM: SET\n"); //Focos encendidos todo el tiempo
+
+    #if defined(ARDUINO)
+        // use UART serial module
+        write(fd_serie, request, MSG_LEN);
+        nanosleep(&time_msg, NULL);
+        read_msg(fd_serie, answer, MSG_LEN);
+    #else
+        //Use the simulator
+        simulator(request, answer);
+    
+    #endif
+        displayLamps(light);
+    
+    return 0;
+}
+
+//Modo Parada tasks
+
+int task_start_moving_again ()
+{
+    char request[MSG_LEN+1];
+    char answer[MSG_LEN+1];
+
+    memset(request,'\0',MSG_LEN+1);
+    memset(answer,'\0',MSG_LEN+1);
+
+    strcpy(request, "STP: REQ\n"); //Ver distancia
+
+    #if defined(ARDUINO)
+        // use UART serial module
+        write(fd_serie, request, MSG_LEN);
+        nanosleep(&time_msg, NULL);
+        read_msg(fd_serie, answer, MSG_LEN);
+    #else
+        //Use the simulator
+        simulator(request, answer);
+    
+    #endif
+
+        if (0 == strcmp(answer, "STP:  GO\n")){
+            modo_actual = MODO_NORMAL;
+            displayStop(0);
+        }
+
+        if (0 == strcmp(answer, "STP:STOP\n")){
+            displayStop(1);
+        }
+        
+    return 0;
+        
+}
+
+//--------------- MODOS DE EJECUCIÓN --------------//
 
 void modo_normal ()
 {
@@ -444,10 +580,85 @@ void modo_normal ()
         secondary_cycle_counter = (secondary_cycle_counter + 1) % 2;
         clock_gettime(CLOCK_MONOTONIC,&end);
         time_passed = (end.tv_sec - start.tv_sec) + (end.tv_nsec - start.tv_nsec)/NS_IN_SEC;
-        sleep(5 -time_passed);
+        sleep(5 - time_passed);
         mixer_crono += 5;
 
     }
+}
+
+void modo_frenado () 
+{
+    long time_passed = 0;
+    int secondary_cycle_counter = 0;
+    struct timespec start, end;
+
+    while (modo_actual == MODO_FRENADO)
+    {
+        clock_gettime(CLOCK_MONOTONIC, &start);
+
+        switch (secondary_cycle_counter) //CP = 20, CS = 5
+        {
+        case 0:
+            task_mixer();
+            task_speed();
+            task_slope();
+            task_gas_modo_frenado();
+            task_brake_modo_frenado();
+            break;
+        
+        case 1:
+            task_speed();
+            task_gas_modo_frenado();
+            task_brake_modo_frenado();
+            task_check_current_distance();
+            task_lamp_not_normal();
+            break;
+        
+        case 2:
+            task_speed();
+            task_gas_modo_frenado();
+            task_brake_modo_frenado();
+            task_mixer();
+            task_slope();
+            break;
+        
+        case 3:
+            task_speed();
+            task_gas_modo_frenado();
+            task_brake_modo_frenado();
+            task_check_current_distance();
+            break;
+        }
+
+        secondary_cycle_counter = (secondary_cycle_counter + 1) % 4;
+        clock_gettime(CLOCK_MONOTONIC,&end);
+        time_passed = (end.tv_sec - start.tv_sec) + (end.tv_nsec - start.tv_nsec)/NS_IN_SEC;
+        sleep(5 - time_passed);
+        mixer_crono += 5;
+
+    }
+
+}
+
+void modo_parada()
+{
+    long time_passed = 0;
+    struct timespec start, end;
+
+    while (modo_actual == MODO_PARADA) //CP = CS = 5
+    {
+        clock_gettime(CLOCK_MONOTONIC, &start);
+
+        task_start_moving_again();
+        task_mixer();
+        task_lamp_not_normal();
+
+        clock_gettime(CLOCK_MONOTONIC,&end); //Fin tiempo del bucle
+        time_passed = (end.tv_sec - start.tv_sec) + (end.tv_nsec - start.tv_nsec)/NS_IN_SEC; // Segundos + nanosegundos
+        sleep (5 - time_passed); //Duermo el bucle hasta terminar el periodo, para evitar acarreo de errores
+        mixer_crono += 5;
+    }
+    
 }
 
 
@@ -458,11 +669,23 @@ void *controller(void *arg)
 {
     // Endless loop
     while(1) {
-        // calling task of speed
-        task_speed();
 
-        // calling task of slope
-        task_slope();
+        switch (modo_actual)
+        {
+        case MODO_NORMAL:
+            modo_normal();
+            break;
+        
+        case MODO_FRENADO:
+            modo_frenado();
+            break;
+        
+        case MODO_PARADA:
+            modo_parada();
+            break;
+    
+        }
+        
     }
 }
 
