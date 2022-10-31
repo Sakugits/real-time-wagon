@@ -188,11 +188,11 @@ int task_gas ()
         nanosleep(&time_msg, NULL);
         read_msg(fd_serie, answer, MSG_LEN);
     #else
-    //Use the simulator
+        //Use the simulator
         simulator(request, answer);
     #endif
 
-    displayGas(gas);
+        displayGas(gas);
 
     return 0;
 }
@@ -227,14 +227,12 @@ int task_brake ()
         nanosleep(&time_msg, NULL);
         read_msg(fd_serie, answer, MSG_LEN);
     #else
-    //Use the simulator
+        //Use the simulator
         simulator(request, answer);
     #endif
 
-  
-    displayBrake(brake);
-
-
+        displayBrake(brake);
+    
     return 0;
 }
 
@@ -277,7 +275,7 @@ int task_mixer ()
         nanosleep(&time_msg, NULL);
         read_msg(fd_serie, answer, MSG_LEN);
     #else
-    //Use the simulator
+        //Use the simulator
         simulator(request, answer);
     #endif
 
@@ -319,6 +317,7 @@ int task_ligth_sensor()
         {
             light=0;
         }
+        
         displayLightSensor(light);
     }
     
@@ -353,12 +352,13 @@ int task_lamp()
         nanosleep(&time_msg, NULL);
         read_msg(fd_serie, answer, MSG_LEN);
     #else
-    //Use the simulator
+        //Use the simulator
         simulator(request, answer);
     
     #endif
         displayLamps(light);
-        return 0;
+    
+    return 0;
 }
 
 

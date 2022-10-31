@@ -29,6 +29,10 @@
 #define SLAVE_ADDR 0x8
 #define NS_IN_SEC 1E9
 
+#define MODO_NORMAL 0
+#define MODO_FRENADO 1
+#define MODO_PARADA 2
+
 //-------------------------------------
 //-  Global Variables
 //-------------------------------------
@@ -39,8 +43,13 @@ int gas = 0;
 int brake = 0;
 int mix = 0;
 int mixer_crono = 0;
+
 int light = 0;
 int light_val = 0;
+
+int modo_actual = 0; //Empieza en modo normal
+int distancia_limite = 11000;
+int distancia_actual = -9999; //Para que no se piense que esté en la parada nada más empezar 
 
 //-------------------------------------
 //-  Function: read_msg
@@ -188,11 +197,11 @@ int task_gas ()
         nanosleep(&time_msg, NULL);
         read_msg(fd_serie, answer, MSG_LEN);
     #else
-    //Use the simulator
+        //Use the simulator
         simulator(request, answer);
     #endif
 
-    displayGas(gas);
+        displayGas(gas);
 
     return 0;
 }
@@ -227,14 +236,12 @@ int task_brake ()
         nanosleep(&time_msg, NULL);
         read_msg(fd_serie, answer, MSG_LEN);
     #else
-    //Use the simulator
+        //Use the simulator
         simulator(request, answer);
     #endif
 
-  
-    displayBrake(brake);
-
-
+        displayBrake(brake);
+    
     return 0;
 }
 
@@ -277,7 +284,7 @@ int task_mixer ()
         nanosleep(&time_msg, NULL);
         read_msg(fd_serie, answer, MSG_LEN);
     #else
-    //Use the simulator
+        //Use the simulator
         simulator(request, answer);
     #endif
 
@@ -319,6 +326,7 @@ int task_ligth_sensor()
         {
             light=0;
         }
+        
         displayLightSensor(light);
     }
     
@@ -353,13 +361,95 @@ int task_lamp()
         nanosleep(&time_msg, NULL);
         read_msg(fd_serie, answer, MSG_LEN);
     #else
-    //Use the simulator
+        //Use the simulator
         simulator(request, answer);
     
     #endif
         displayLamps(light);
-        return 0;
+    
+    return 0;
 }
+
+int task_check_current_distance()
+{
+    char request[MSG_LEN+1];
+    char answer[MSG_LEN+1];
+
+    memset(request,'\0',MSG_LEN+1);
+    memset(answer,'\0',MSG_LEN+1);
+
+    //Pedimos la distancia
+    strcpy(request, "DS:  REQ\n");
+
+    #if defined(ARDUINO)
+        // use UART serial module
+        write(fd_serie, request, MSG_LEN);
+        nanosleep(&time_msg, NULL);
+        read_msg(fd_serie, answer, MSG_LEN);
+    #else
+        //Use the simulator
+        simulator(request, answer);
+    
+    #endif
+        
+        if (1 == sscanf (answer, "DS:%i\n", &distancia_actual))
+        {
+            if(distancia_actual == 0)
+            {
+                modo_actual = MODO_PARADA;
+            }
+
+            if(distancia_actual < distancia_limite)
+            {
+                modo_actual = MODO_FRENADO;
+            }
+
+            displayDistance(distancia_actual);
+	    }
+    
+    return 0;
+}
+
+//--------------- MODOS DE EJECUCIÓN --------------
+
+void modo_normal ()
+{
+    long time_passed = 0;
+    int secondary_cycle_counter = 0;
+    struct timespec start, end;
+
+    while (modo_actual == MODO_NORMAL)
+    {
+        clock_gettime(CLOCK_MONOTONIC, &start);
+
+        switch (secondary_cycle_counter) //CP = 10, CS = 5
+        {
+        case 0:
+            task_ligth_sensor();
+            task_lamp ();
+            task_mixer ();
+            task_speed ();
+            task_slope ();
+            break;
+        
+        case 1:
+            task_ligth_sensor();
+            task_lamp();
+            task_gas();
+            task_brake();
+            task_check_current_distance();
+            break;
+        }
+
+        secondary_cycle_counter = (secondary_cycle_counter + 1) % 2;
+        clock_gettime(CLOCK_MONOTONIC,&end);
+        time_passed = (end.tv_sec - start.tv_sec) + (end.tv_nsec - start.tv_nsec)/NS_IN_SEC;
+        sleep(5 -time_passed);
+        mixer_crono += 5;
+
+    }
+}
+
 
 //-------------------------------------
 //-  Function: controller
