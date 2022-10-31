@@ -377,7 +377,7 @@ void *controller(void *arg)
 
         clock_gettime(CLOCK_MONOTONIC, &start);
 
-        switch (secondary_cycle_counter) //CP = 10, CS = 5
+        switch (secondary_cycle_counter) //CP = 10, CS = 5, cumple los requisitos
         {
         case 0:
             task_ligth_sensor();
