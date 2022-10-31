@@ -27,7 +27,7 @@
 //-------------------------------------
 #define MSG_LEN 9
 #define SLAVE_ADDR 0x8
-#define NS_IN_SEC = 1E9;
+#define NS_IN_SEC 1E9
 
 //-------------------------------------
 //-  Global Variables
@@ -172,12 +172,12 @@ int task_gas ()
     if (speed >  55)
     {
         strcpy(request, "GAS: CLR\n");
-        gas = 1;
+        gas = 0;
     }
     else 
     {
         strcpy(request, "GAS: SET\n");
-        gas = 0;
+        gas = 1;
     }
 
     #if defined(ARDUINO)
@@ -190,9 +190,7 @@ int task_gas ()
         simulator(request, answer);
     #endif
 
-    if (1 == sscanf (answer, "GAS:%f\n", &gas)){
-        displayGas(gas);
-    }
+    displayGas(gas);
 
     return 0;
 }
@@ -231,9 +229,9 @@ int task_brake ()
         simulator(request, answer);
     #endif
 
-    if (1 == sscanf (answer, "BRK:%f\n", &brake)){
-        displayBrake(brake);
-    }
+  
+    displayBrake(brake);
+
 
     return 0;
 }
@@ -281,10 +279,7 @@ int task_mixer ()
         simulator(request, answer);
     #endif
 
-    if (1 == sscanf (answer, "MIX:%f\n", &mixer)){
-        displayMix(mix);
-    }
-
+    displayMix(mix);
 
     return 0;
 }
@@ -300,7 +295,7 @@ void *controller(void *arg)
     // Endless loop
     while(1) { 
     /*CP = 10 , CS = 10 , TC = 0.9 * 5 = 4,5s y se cumple TC <= T = D, un solo ciclo
-    Para ello hemos acotado todas las tareas a T = D = 10, esto también cumple el teorema del muestreo */
+    Para ello hemos acotado todas las tareas a T = D = 10, esto también cumple el teorema del muestreo para el mixer */
 
         clock_gettime (CLOCK_MONOTONIC, &start); //Inicio del tiempo del bucle
         
