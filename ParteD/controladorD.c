@@ -114,7 +114,7 @@ void check_emergency (struct timespec start, struct timespec end) //Comprueba si
 int task_speed()
 {
     struct timespec start, end;
-    clock_gettime(CLOCK_MONOTONIC,&start);
+    clock_gettime(CLOCK_MONOTONIC,&start); //Medimos el tiempo que tarda la tarea
 
     char request[MSG_LEN+1];
     char answer[MSG_LEN+1];
@@ -146,7 +146,7 @@ int task_speed()
     }
 
     clock_gettime(CLOCK_MONOTONIC,&end);
-    check_emergency (start,end);
+    check_emergency (start,end); //Si el tiempo es > 0.9 se activa el modo de emergencia
 
     return 0;
 }

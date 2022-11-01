@@ -29,6 +29,7 @@
 #define SLAVE_ADDR 0x8
 #define NS_IN_SEC 1E9
 
+//Parte C
 #define MODO_NORMAL 0
 #define MODO_FRENADO 1
 #define MODO_PARADA 2
@@ -39,14 +40,15 @@
 float speed = 0.0;
 struct timespec time_msg = {0,400000000};
 int fd_serie = -1;
+//Parte A
 int gas = 0;
 int brake = 0;
 int mix = 0;
 int mixer_crono = 0;
-
+//Parte B
 int light = 0;
 int light_val = 0;
-
+//Parte C
 int modo_actual = 0; //Empieza en modo normal
 int distancia_limite = 11000;
 int distancia_actual = -9999; //Para que no se piense que esté en la parada nada más empezar 
@@ -201,7 +203,7 @@ int task_gas ()
         simulator(request, answer);
     #endif
 
-        displayGas(gas);
+    displayGas(gas);
 
     return 0;
 }
@@ -304,7 +306,7 @@ int task_ligth_sensor()
     memset(request,'\0',MSG_LEN+1);
     memset(answer,'\0',MSG_LEN+1);
 
-    // request light
+    // Vemos el nivel de luminosidad del entorno
     strcpy(request, "LIT: REQ\n");
 
     #if defined(ARDUINO)
@@ -318,7 +320,7 @@ int task_ligth_sensor()
     #endif
     if (1 == sscanf (answer, "LIT: %i\n", &light_val)){
         
-        if(light_val <= 50)
+        if(light_val <= 50) //Se encienden los focos
         {
             light=1;
         }

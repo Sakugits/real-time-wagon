@@ -35,10 +35,12 @@
 float speed = 0.0;
 struct timespec time_msg = {0,400000000};
 int fd_serie = -1;
+//Parte A
 int gas = 0;
 int brake = 0;
 int mix = 0;
 int mixer_crono = 0;
+//Parte B
 int light = 0;
 int light_val = 0;
 
@@ -295,7 +297,7 @@ int task_ligth_sensor()
     memset(request,'\0',MSG_LEN+1);
     memset(answer,'\0',MSG_LEN+1);
 
-    // request light
+    // Vemos el nivel de luminosidad del entorno
     strcpy(request, "LIT: REQ\n");
 
     #if defined(ARDUINO)
@@ -307,11 +309,12 @@ int task_ligth_sensor()
         //Use the simulator
         simulator(request, answer);
     #endif
+
     if (1 == sscanf (answer, "LIT: %i\n", &light_val)){
         
         if(light_val <= 50)
         {
-            light=1;
+            light=1; //Encendemos los faros
         }
         else
         {
@@ -337,7 +340,7 @@ int task_lamp()
 
     //Lamp function
 
-    if (light == 1)
+    if (light == 1) //Se deben encender los faros
     {
     	strcpy(request, "LAM: SET\n");
     }
@@ -356,7 +359,8 @@ int task_lamp()
         simulator(request, answer);
     
     #endif
-        displayLamps(light);
+    
+    displayLamps(light);
     
     return 0;
 }
