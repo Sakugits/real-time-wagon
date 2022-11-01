@@ -400,7 +400,7 @@ int task_check_current_distance()
                 modo_actual = MODO_PARADA;
             }
 
-            if(distancia_actual < distancia_limite)
+            else if(distancia_actual < distancia_limite)
             {
                 modo_actual = MODO_FRENADO;
             }
