@@ -474,7 +474,7 @@ int task_check_current_distance()
     
     clock_gettime(CLOCK_MONOTONIC,&end);
     check_emergency (start,end);
-    
+
     return 0;
 }
 
@@ -744,7 +744,6 @@ void modo_normal ()
             task_lamp();
             task_gas();
             task_brake();
-            task_check_current_distance();
             break;
         }
 
@@ -838,7 +837,7 @@ void modo_emergencia ()
     int secondary_cycle_counter = 0;
     struct timespec start, end;
 
-    while (modo_actual == MODO_NORMAL)
+    while (1) //No se puede salir de este modo una vez se entra
     {
         clock_gettime(CLOCK_MONOTONIC, &start);
 
