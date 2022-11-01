@@ -474,6 +474,7 @@ int task_check_current_distance()
     
     clock_gettime(CLOCK_MONOTONIC,&end);
     check_emergency (start,end);
+    
     return 0;
 }
 
@@ -514,6 +515,9 @@ int task_gas_modo_frenado ()
     #endif
 
     displayGas(gas);
+
+    clock_gettime(CLOCK_MONOTONIC,&end);
+    check_emergency (start,end);
 
     return 0;
 }
