@@ -32,13 +32,19 @@ int brake = 0;
 // 1 = on, 0 = off
 int mixer = 0; 
 
-int acceleration; 
-int speed_int;
-int speed_dec;
-
-//Tiempo de cyclo secundario en segundos  
 int sc_s = 0.1;
 
+//ciclo secundario en milisegundos 
+unsigned long sc_m = 100;
+// tiempo de ejecucion en milisegundos del ciclo secundario
+unsigned long sc_tiempo_ejecucion_m; 
+
+unsigned long tiempo;
+unsigned long tiempo_total;
+unsigned long lag; 
+
+int ciclo = 1 ;
+int resto_cilco = 1;
 // --------------------------------------
 // Function: comm_server
 // --------------------------------------
@@ -87,6 +93,7 @@ int comm_server()
          break;
       }
 
+
       // Increment the count
       count++;
    }
@@ -123,8 +130,8 @@ int slope_req(){
             sprintf(answer, "SLP:FLAT\n");
             requested_answered = true;
          }
-         Serial.print(answer);
       }
+    
    }
    return 0;   
 }
@@ -132,12 +139,12 @@ int gas_req(){
    if ((request_received) && (!requested_answered)){
       if (0 == strcmp("GAS: SET\n",request)){
          gas = 1;
-         printf(answer, "GAS:  OK\n");
+         sprintf(answer, "GAS:  OK\n");
          requested_answered = true;
       }
-      if(0 == strcmp("GAS: CLR", request)){
+      if(0 == strcmp("GAS: CLR\n", request)){
          gas = 0;
-         printf(answer, "GAS:  OK\n", request);
+         sprintf(answer, "GAS:  OK\n", request);
          requested_answered = true;
       }
    }
@@ -149,14 +156,16 @@ int brake_req(){
       if (0 == strcmp("BRK: SET\n",request)){
          brake = 1;
          sprintf(answer, "BRK:  OK\n");
-         Serial.print(answer);
          requested_answered = true; 
+         
+         memset(request,'\0', MESSAGE_SIZE+1);
+         request_received = false;
       }
       if (0 == strcmp("BRK: CLR\n",request)){
          brake = 0;
          sprintf(answer, "BRK:  OK\n");
-         Serial.print(answer);
          requested_answered = true;
+         
       }
    }
    return 0;  
@@ -166,12 +175,13 @@ int mix_req(){
       if(0 == strcmp("MIX: SET\n",request)){
          mixer = 1;
          sprintf(answer, "MIX:  OK\n");
-         Serial.print(answer);
+         requested_answered = true;
+    
       }
       if(0 == strcmp("MIX: CLR\n",request)){
          mixer = 1;
          sprintf(answer, "MIX:  OK\n");
-         Serial.print(answer);
+         requested_answered = true;
       }
    }
       return 0;
@@ -190,6 +200,7 @@ int arduino_gas() {
 }
 
 int arduino_slope() {
+   slope = 0;
    if (digitalRead(9) == HIGH) {
       slope = 1;
       return 0;
@@ -198,7 +209,6 @@ int arduino_slope() {
       slope = -1;
       return 0;
    }
-   slope = 0;
    return 0;  
 }
 
@@ -213,48 +223,72 @@ int arduino_brk(){
 }
 int arduino_mixer() {
   if (mixer == 1) {
-    digitalWrite(11, HIGH);
+   digitalWrite(11, HIGH);
    }
   if (mixer == 0) {
-    digitalWrite(11, LOW);
+   digitalWrite(11, LOW);
   }
   return 0;
 }
 
 int arduino_speed(){
+  double acceleration = 0; 
    if(gas == 1 ){
-      acceleration += 0.5;
+      acceleration = acceleration + 0.5;
+      // Serial.print(acceleration);
       }
    if(brake == 1){
-      acceleration += -0.5;
+      acceleration = acceleration - 0.5;
       }
    if(slope == 1){
-      acceleration += 0.25;
+      acceleration = acceleration - 0.25;
       }
    if (slope == -1){
-      acceleration += 0,25; 
+      acceleration =  acceleration + 0.25; 
       }
-   speed += acceleration * sc_s;
+   speed = speed +  (acceleration * 0.1);
    analogWrite(10, map(speed, 40, 70, 0, 255));
    return 0;
 }
 
 
 int all_requests(){
-   slope_req();
    speed_req();
+   slope_req();
    gas_req();
    brake_req();
-   mix_req();
+  // mix_req();
    return 0;
 }
+
 int all_tasks(){
-   arduino_slope();
    arduino_gas();
    arduino_brk();
-   arduino_speed();
+  // arduino_mixer();
+   arduino_slope();
    return 0;
 }
+
+/*
+int modo_A(){
+   if (ciclo %2 == 0) {
+      all_tasks();
+      comm_server();
+      ciclo +=1;
+      tiempo = millis();
+   }else{
+      all_tasks();
+      ciclo +=1;
+      tiempo = millis();
+   }
+   sc_tiempo_ejecucion_m = tiempo - tiempo_total;
+   lag = sc_m - sc_tiempo_ejecucion_m;
+   delay(lag);
+   tiempo_total += sc_m;
+   return 0;
+}
+*/
+
 
 // --------------------------------------
 // Function: setup
@@ -263,22 +297,33 @@ void setup()
 {
    // Setup Serial Monitor
    Serial.begin(9600);
-   /*
+
    pinMode(8, INPUT);
    pinMode(9, INPUT);
    pinMode(10, OUTPUT);
    pinMode(11, OUTPUT);
    pinMode(12, OUTPUT);
    pinMode(13, OUTPUT);
-   */
 }
+
 
 // --------------------------------------
 // Function: loop
 // --------------------------------------
 void loop()
 {
-   comm_server();
+   double start = millis();
+   arduino_speed();
    all_tasks();
    all_requests();
+   comm_server();
+
+   double end = millis();
+   delay(100-(end-start));
+   double diff = end - start;
+  // Serial.print(diff);
+   //Serial.print("end - start:\n");
+
+//  
+
 }
