@@ -296,11 +296,8 @@ void setup()
 
    Wire.begin(SLAVE_ADDR);
   
-  // Function to run when data requested from master
-   Wire.onRequest(requestEvent);
-  
   // Function to run when data received from master
-   Wire.onReceive(receiveEvent);
+   Wire.onReceive(comm_server);
 
    pinMode(8, INPUT);
    pinMode(9, INPUT);
@@ -320,7 +317,6 @@ void loop()
    arduino_speed();
    all_tasks();
    all_requests();
-   comm_server();
 
    double end = millis();
    delay(100-(end-start));
