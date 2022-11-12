@@ -292,6 +292,7 @@ int task_mixer ()
 //-------------------------------------
 void *controller(void *arg)
 {
+    sleep(2);
     long time_passed = 0;
     struct timespec start, end;
     
