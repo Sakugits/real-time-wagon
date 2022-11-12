@@ -190,6 +190,7 @@ int task_gas ()
         simulator(request, answer);
     #endif
 
+    if (0 == strcmp(answer, "GAS:  OK\n"))
     displayGas(gas);
 
     return 0;
@@ -229,8 +230,9 @@ int task_brake ()
         simulator(request, answer);
     #endif
 
-  
+    if (0 == strcmp(answer, "BRK:  OK\n")) 
     displayBrake(brake);
+    
 
 
     return 0;
@@ -279,6 +281,7 @@ int task_mixer ()
         simulator(request, answer);
     #endif
 
+    if (0 == strcmp(answer, "MIX:  OK\n"))
     displayMix(mix);
 
     return 0;

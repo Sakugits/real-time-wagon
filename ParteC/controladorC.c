@@ -51,7 +51,7 @@ int light_val = 0;
 //Parte C
 int modo_actual = 0; //Empieza en modo normal
 int distancia_limite = 11000;
-int distancia_actual = -9999; //Para que no se piense que esté en la parada nada más empezar 
+int distancia_actual = 99999; //Para que no se piense que esté en la parada nada más empezar 
 
 //-------------------------------------
 //-  Function: read_msg
@@ -203,7 +203,8 @@ int task_gas ()
         simulator(request, answer);
     #endif
 
-    displayGas(gas);
+        if (0 == strcmp(answer, "GAS:  OK\n"))
+        displayGas(gas);
 
     return 0;
 }
@@ -242,6 +243,7 @@ int task_brake ()
         simulator(request, answer);
     #endif
 
+        if (0 == strcmp(answer, "BRK:  OK\n")) 
         displayBrake(brake);
     
     return 0;
@@ -290,6 +292,7 @@ int task_mixer ()
         simulator(request, answer);
     #endif
 
+    if (0 == strcmp(answer, "MIX:  OK\n"))
     displayMix(mix);
 
     return 0;
@@ -368,6 +371,8 @@ int task_lamp()
         simulator(request, answer);
     
     #endif
+
+        if (0 == strcmp(answer, "LAM:  OK\n"))
         displayLamps(light);
     
     return 0;
@@ -397,7 +402,7 @@ int task_check_current_distance()
         
         if (1 == sscanf (answer, "DS:%i\n", &distancia_actual))
         {
-            if(distancia_actual == 0)
+            if(distancia_actual <= 0)
             {
                 modo_actual = MODO_PARADA;
             }
@@ -446,6 +451,7 @@ int task_gas_modo_frenado ()
         simulator(request, answer);
     #endif
 
+        if (0 == strcmp(answer, "GAS:  OK\n"))
         displayGas(gas);
 
     return 0;
@@ -482,6 +488,7 @@ int task_brake_modo_frenado ()
         simulator(request, answer);
     #endif
 
+        if (0 == strcmp(answer, "BRK:  OK\n")) 
         displayBrake(brake);
     
     return 0;
@@ -507,6 +514,8 @@ int task_lamp_not_normal()
         simulator(request, answer);
     
     #endif
+
+        if (0 == strcmp(answer, "LAM:  OK\n"))
         displayLamps(light);
     
     return 0;
@@ -540,7 +549,7 @@ int task_start_moving_again ()
             displayStop(0);
         }
 
-        if (0 == strcmp(answer, "STP:STOP\n")){
+        else if (0 == strcmp(answer, "STP:STOP\n")){
             displayStop(1);
         }
         

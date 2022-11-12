@@ -54,6 +54,8 @@ int modo_actual = 0; //Empieza en modo normal
 int distancia_limite = 11000;
 int distancia_actual = -9999; //Para que no se piense que esté en la parada nada más empezar 
 
+int arduino_signal_sent = 0; //Enviada señal de emergencia a sistema electrico
+
 //-------------------------------------
 //-  Function: read_msg
 //-------------------------------------
@@ -97,7 +99,7 @@ int read_msg(int fd, char *buffer, int max_size)
     return 0;
 }
 
-void check_emergency (struct timespec start, struct timespec end) //Comprueba si ha habido un retraso en el timing
+void check_emergency (struct timespec start, struct timespec end, char answer[]) //Comprueba si ha habido un retraso en el timing o un msg de error
 {
     long response_time = (end.tv_sec - start.tv_sec) + (end.tv_nsec - start.tv_nsec)/NS_IN_SEC;
 
@@ -105,6 +107,12 @@ void check_emergency (struct timespec start, struct timespec end) //Comprueba si
     {
         modo_actual = MODO_EMERGENCIA;
     }
+
+    else if (0 == strcmp(answer, "MSG: ERR\n"))
+    {
+        modo_actual = MODO_EMERGENCIA;
+    }
+   
 
 }
 
@@ -146,7 +154,7 @@ int task_speed()
     }
 
     clock_gettime(CLOCK_MONOTONIC,&end);
-    check_emergency (start,end); //Si el tiempo es > 0.9 se activa el modo de emergencia
+    check_emergency (start,end,answer); //Si el tiempo es > 0.9 se activa el modo de emergencia o se recibe un mensaje de error
 
     return 0;
 }
@@ -189,7 +197,7 @@ int task_slope()
     if (0 == strcmp(answer, "SLP:  UP\n")) displaySlope(1);
 
     clock_gettime(CLOCK_MONOTONIC,&end);
-    check_emergency (start,end);
+    check_emergency (start,end,answer);
 
     return 0;
 
@@ -232,10 +240,11 @@ int task_gas ()
         simulator(request, answer);
     #endif
 
+    if (0 == strcmp(answer, "GAS:  OK\n"))
     displayGas(gas);
 
     clock_gettime(CLOCK_MONOTONIC,&end);
-    check_emergency (start,end);
+    check_emergency (start,end,answer);
 
     return 0;
 }
@@ -277,10 +286,11 @@ int task_brake ()
         simulator(request, answer);
     #endif
 
+    if (0 == strcmp(answer, "BRK:  OK\n")) 
     displayBrake(brake);
 
     clock_gettime(CLOCK_MONOTONIC,&end);
-    check_emergency (start,end);
+    check_emergency (start,end,answer);
     
     return 0;
 }
@@ -331,10 +341,11 @@ int task_mixer ()
         simulator(request, answer);
     #endif
 
+    if (0 == strcmp(answer, "MIX:  OK\n"))
     displayMix(mix);
 
     clock_gettime(CLOCK_MONOTONIC,&end);
-    check_emergency (start,end);
+    check_emergency (start,end,answer);
 
     return 0;
 }
@@ -382,7 +393,7 @@ int task_ligth_sensor()
     }
 
     clock_gettime(CLOCK_MONOTONIC,&end);
-    check_emergency (start,end);
+    check_emergency (start,end,answer);
     
     return 0;
 }
@@ -424,10 +435,11 @@ int task_lamp()
     
     #endif
 
+    if (0 == strcmp(answer, "LAM:  OK\n"))
     displayLamps(light);
 
     clock_gettime(CLOCK_MONOTONIC,&end);
-    check_emergency (start,end);
+    check_emergency (start,end,answer);
 
     return 0;
 }
@@ -473,7 +485,7 @@ int task_check_current_distance()
 	}
     
     clock_gettime(CLOCK_MONOTONIC,&end);
-    check_emergency (start,end);
+    check_emergency (start,end,answer);
 
     return 0;
 }
@@ -514,10 +526,11 @@ int task_gas_modo_frenado ()
         simulator(request, answer);
     #endif
 
+    if (0 == strcmp(answer, "GAS:  OK\n"))
     displayGas(gas);
 
     clock_gettime(CLOCK_MONOTONIC,&end);
-    check_emergency (start,end);
+    check_emergency (start,end,answer);
 
     return 0;
 }
@@ -557,10 +570,11 @@ int task_brake_modo_frenado ()
         simulator(request, answer);
     #endif
 
+    if (0 == strcmp(answer, "BRK:  OK\n"))
     displayBrake(brake);
 
     clock_gettime(CLOCK_MONOTONIC,&end);
-    check_emergency (start,end);
+    check_emergency (start,end,answer);
     
     return 0;
 }
@@ -589,10 +603,11 @@ int task_lamp_not_normal()
     
     #endif
     
+    if (0 == strcmp(answer, "LAM:  OK\n"))
     displayLamps(light);
 
     clock_gettime(CLOCK_MONOTONIC,&end);
-    check_emergency (start,end);
+    check_emergency (start,end,answer);
     
     return 0;
 }
@@ -627,12 +642,12 @@ int task_start_moving_again ()
         displayStop(0);
     }
 
-    if (0 == strcmp(answer, "STP:STOP\n")){
+    else if (0 == strcmp(answer, "STP:STOP\n")){
         displayStop(1);
     }
 
     clock_gettime(CLOCK_MONOTONIC,&end);
-    check_emergency (start,end);
+    check_emergency (start,end,answer);
         
     return 0;
         
@@ -642,6 +657,8 @@ int task_start_moving_again ()
 
 int task_send_emergency_signal_to_Arduino () 
 {
+    if (arduino_signal_sent == 1) return 0; //No se repite la señal una vez se envía correctamente
+
     char request[MSG_LEN+1];
     char answer[MSG_LEN+1];
 
@@ -659,6 +676,9 @@ int task_send_emergency_signal_to_Arduino ()
         //Use the simulator
         simulator(request, answer);
     #endif
+
+    if(strcmp(answer, "ERR:  OK\n") == 0)
+    arduino_signal_sent = 1;
 
     return 0;
 
