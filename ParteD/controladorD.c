@@ -764,6 +764,7 @@ void modo_normal ()
             task_lamp();
             task_gas();
             task_brake();
+            task_check_current_distance();
             break;
         }
 
