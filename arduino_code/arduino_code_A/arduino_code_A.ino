@@ -294,6 +294,14 @@ void setup()
    // Setup Serial Monitor
    Serial.begin(9600);
 
+   Wire.begin(SLAVE_ADDR);
+  
+  // Function to run when data requested from master
+   Wire.onRequest(requestEvent);
+  
+  // Function to run when data received from master
+   Wire.onReceive(receiveEvent);
+
    pinMode(8, INPUT);
    pinMode(9, INPUT);
    pinMode(10, OUTPUT);
