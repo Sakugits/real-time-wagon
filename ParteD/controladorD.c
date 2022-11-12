@@ -876,7 +876,6 @@ void modo_emergencia ()
             task_send_emergency_signal_to_Arduino();
             task_gas_emergency();
             task_brake_emergency();
-            task_check_current_distance();
             break;
         }
 
