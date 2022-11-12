@@ -112,6 +112,7 @@ int speed_req()
       sprintf(answer,"SPD:%s\n",num_str);
       // set request as answered
       requested_answered = true;
+      request_received = false;
    }
    return 0;
 }  
@@ -120,16 +121,15 @@ int slope_req(){
       if (0 == strcmp("SLP: REQ\n",request)){
          if (slope == 1){
             sprintf(answer, "SLP:  UP\n");
-            requested_answered = true;
          }
          if (slope == -1){
             sprintf(answer, "SLP:DOWN\n");
-            requested_answered = true;
          }  
          if (slope == 0){
             sprintf(answer, "SLP:FLAT\n");
-            requested_answered = true;
          }
+      request_received = false;
+      requested_answered = true;
       }
     
    }
@@ -140,13 +140,13 @@ int gas_req(){
       if (0 == strcmp("GAS: SET\n",request)){
          gas = 1;
          sprintf(answer, "GAS:  OK\n");
-         requested_answered = true;
       }
       if(0 == strcmp("GAS: CLR\n", request)){
          gas = 0;
          sprintf(answer, "GAS:  OK\n", request);
-         requested_answered = true;
       }
+      request_received = false;
+      requested_answered = true;
    }
       return 0;
 }
@@ -156,17 +156,13 @@ int brake_req(){
       if (0 == strcmp("BRK: SET\n",request)){
          brake = 1;
          sprintf(answer, "BRK:  OK\n");
-         requested_answered = true; 
-         
-         memset(request,'\0', MESSAGE_SIZE+1);
-         request_received = false;
       }
       if (0 == strcmp("BRK: CLR\n",request)){
          brake = 0;
          sprintf(answer, "BRK:  OK\n");
-         requested_answered = true;
-         
       }
+      request_received = false;
+      requested_answered = true;
    }
    return 0;  
 }
@@ -175,14 +171,14 @@ int mix_req(){
       if(0 == strcmp("MIX: SET\n",request)){
          mixer = 1;
          sprintf(answer, "MIX:  OK\n");
-         requested_answered = true;
     
       }
       if(0 == strcmp("MIX: CLR\n",request)){
          mixer = 1;
          sprintf(answer, "MIX:  OK\n");
-         requested_answered = true;
       }
+      request_received = false;
+      requested_answered = true;
    }
       return 0;
 }
