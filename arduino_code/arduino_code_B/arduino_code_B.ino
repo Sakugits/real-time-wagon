@@ -6,7 +6,7 @@
 #include <Wire.h>
 
 // --------------------------------------
-// Global Constants
+// Global Constants a
 // --------------------------------------
 #define SLAVE_ADDR 0x8
 #define MESSAGE_SIZE 9
@@ -105,10 +105,14 @@ int comm_server()
    }
 }
 // --------------------------------------
-// Function: ligth_req
+// Function: read_light
 // --------------------------------------
-int ligth_req()
+int read_ligth()
 {
+   int value = 0;
+   value = analogRead(A0);
+   ligth = map (value, 0, 1023, 0, 99);
+}
    // while there is enough data for a request
    if ( (request_received) &&
         (0 == strcmp("LIT: REQ\n",request)) ) {
@@ -133,12 +137,14 @@ int lamp_req()
    if ( (request_received) && (!requested_answered)){
         if (0 == strcmp("LAM: SET",request)) ) {
            lamp = 1;
+           digitalWrite(7, HIGH);
            sprintf(answer,"LAM:  OK"); 
         }
 
         if( (request_received) &&
         (0 == strcmp("LAM: CLR",request)) ){
            lamp = 0;
+           digitalWrite(7, LOW);
            sprintf(answer,"LAM:  OK");
         }
         request_received = false;
@@ -163,34 +169,20 @@ int speed_req()
       request_received = false;
    }
    return 0;
-}  
-int slope_req(){
-   if ((request_received) && (!requested_answered)){
-      if (0 == strcmp("SLP: REQ\n",request)){
-         if (slope == 1){
-            sprintf(answer, "SLP:  UP\n");
-         }
-         if (slope == -1){
-            sprintf(answer, "SLP:DOWN\n");
-         }  
-         if (slope == 0){
-            sprintf(answer, "SLP:FLAT\n");
-         }
-      request_received = false;
-      requested_answered = true;
-      }
-    
-   }
-   return 0;   
 }
+// --------------------------------------
+// Function: gas_req
+// --------------------------------------  
 int gas_req(){
    if ((request_received) && (!requested_answered)){
       if (0 == strcmp("GAS: SET\n",request)){
          gas = 1;
+         digitalWrite(13, HIGH);
          sprintf(answer, "GAS:  OK\n");
       }
       if(0 == strcmp("GAS: CLR\n", request)){
          gas = 0;
+         digitalWrite(13, LOW);
          sprintf(answer, "GAS:  OK\n", request);
       }
       request_received = false;
@@ -198,15 +190,19 @@ int gas_req(){
    }
       return 0;
 }
-
+// --------------------------------------
+// Function: brake_req
+// --------------------------------------
 int brake_req(){
    if ((request_received) && (!requested_answered)){
       if (0 == strcmp("BRK: SET\n",request)){
          brake = 1;
+         digitalWrite(12, HIGH);
          sprintf(answer, "BRK:  OK\n");
       }
       if (0 == strcmp("BRK: CLR\n",request)){
          brake = 0;
+         digitalWrite(12, LOW);
          sprintf(answer, "BRK:  OK\n");
       }
       request_received = false;
@@ -214,15 +210,21 @@ int brake_req(){
    }
    return 0;  
 }
+// --------------------------------------
+// Function: mix_req
+// --------------------------------------
 int mix_req(){
    if ((request_received) && (!requested_answered)){
       if(0 == strcmp("MIX: SET\n",request)){
          mixer = 1;
+         digitalWrite(11, HIGH);
          sprintf(answer, "MIX:  OK\n");
+         
     
       }
       if(0 == strcmp("MIX: CLR\n",request)){
-         mixer = 1;
+         mixer = 0;
+         digitalWrite(11, LOW);
          sprintf(answer, "MIX:  OK\n");
       }
       request_received = false;
@@ -230,69 +232,10 @@ int mix_req(){
    }
       return 0;
 }
-int ardduino_lamp()
-{
- if (lamp == 1){
-    digitalWrite(7, HIGH);
-    return 0;
- }
- if (lamp == 0){
-    digitalWrite(7, LOW);
-    return 0;
- }
-}
-int arduino_ligth()
-{
-  int value = 0;
-  value = analogRead(0);
-  ligth = map (value, 0, 1023, 0, 99);
-}
-
-int arduino_gas() {
-   if (gas == 0) {
-      digitalWrite(13, LOW);
-      return 0;
-   }
-   if (gas == 1){
-      digitalWrite(13, HIGH);
-      return 0;
-   }
-   return 0;
-}
-
-int arduino_slope() {
-   slope = 0;
-   if (digitalRead(9) == HIGH) {
-      slope = 1;
-      return 0;
-   }
-   if (digitalRead(8) == HIGH) {
-      slope = -1;
-      return 0;
-   }
-   return 0;  
-}
-
-int arduino_brk(){
-   if(brake == 1){
-      digitalWrite(12, HIGH);
-   }
-   if(brake == 0){
-      digitalWrite(12, LOW);
-   }
-   return 0; 
-}
-int arduino_mixer() {
-  if (mixer == 1) {
-   digitalWrite(11, HIGH);
-   }
-  if (mixer == 0) {
-   digitalWrite(11, LOW);
-  }
-  return 0;
-}
-
-int arduino_speed(){
+// --------------------------------------
+// Function: show_speed
+// --------------------------------------
+int show_speed(){
   double acceleration = 0; 
    if(gas == 1 ){
       acceleration = acceleration + 0.5;
@@ -311,29 +254,30 @@ int arduino_speed(){
    analogWrite(10, map(speed, 40, 70, 0, 255));
    return 0;
 }
-
-
-int all_requests(){
-   speed_req();
-   slope_req();
-   gas_req();
-   brake_req();
-   ligth_req()
-   lamp_req()
-   mix_req();
-   return 0;
+// --------------------------------------
+// Function: read_slope
+// --------------------------------------
+int read_slope(){
+   if ((request_received) && (!requested_answered)){
+      if (0 == strcmp("SLP: REQ\n",request)){
+        slope = 0;
+        if (digitalRead(9) == HIGH) {
+            slope = 1;
+            sprintf(answer, "SLP:  UP\n");
+        }
+        if (digitalRead(8) == HIGH) {
+            slope = -1;
+            sprintf(answer, "SLP:  UP\n");
+        }
+        else{
+            sprintf(answer, "SLP:FLAT\n");
+         }
+      }
+      request_received = false;
+      requested_answered = true;
+      }
+   return 0;   
 }
-
-int all_tasks(){
-   arduino_gas();
-   arduino_brk();
-   arduino_mixer();
-   arduino_slope();
-   arduino_ligth();
-   ardduino_lamp();
-   return 0;
-}
-
 
 // --------------------------------------
 // Function: setup
@@ -343,11 +287,7 @@ void setup()
    // Setup Serial Monitor
    Serial.begin(9600);
 
-   Wire.begin(SLAVE_ADDR);
-  
-  // Function to run when data received from master
-   Wire.onReceive(comm_server);
-
+   pinMode(7, OUTPUT)
    pinMode(8, INPUT);
    pinMode(9, INPUT);
    pinMode(10, OUTPUT);
@@ -363,9 +303,15 @@ void setup()
 void loop()
 {
    double start = millis();
-   arduino_speed();
-   all_tasks();
-   all_requests();
+   comm_server();
+   speed_req();
+   gas_req();
+   mix_req();
+   show_speed();
+   read_slope();
+   read_ligth();
+   lamp_req();
+
 
    double end = millis();
    delay(100-(end-start));
