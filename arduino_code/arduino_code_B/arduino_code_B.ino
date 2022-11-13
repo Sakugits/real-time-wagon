@@ -120,9 +120,9 @@ int read_ligth()
 	  itoa(ligth, cstr, 10);
      
      if(ligth>=10){
-       sprintf(answer,"LIT: %s%%\n",ptr);
+       sprintf(answer,"LIT: %s\n",ptr);
      } else {
-       sprintf(answer,"LIT: 0%s%%\n",ptr);
+       sprintf(answer,"LIT: 0%s\n",ptr);
      }
     request_received = false;
     requested_answered = true;

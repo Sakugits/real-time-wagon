@@ -1,4 +1,4 @@
-// --------------------------------------
+/ --------------------------------------
 // Include files
 // --------------------------------------
 #include <string.h>
@@ -6,7 +6,7 @@
 #include <Wire.h>
 
 // --------------------------------------
-// Global Constants
+// Global Constants a
 // --------------------------------------
 #define SLAVE_ADDR 0x8
 #define MESSAGE_SIZE 9
@@ -19,6 +19,20 @@ bool request_received = false;
 bool requested_answered = false;
 char request[MESSAGE_SIZE+1];
 char answer[MESSAGE_SIZE+1];
+
+int out2  = 2; 
+int out3  = 3;
+int out4   = 4;
+int out5  = 5;
+
+// o = button not pushed 1 button pushed
+int button = 0;
+
+// number between [10000,90000]
+long distance = 0; 
+
+// 0 = distance selector 1 = approach mode 2 = stop mode
+int mode = 0;
 
 // 1 = on 0 = off
 int lamp = 0;
@@ -104,11 +118,110 @@ int comm_server()
       count++;
    }
 }
+/ --------------------------------------
+// Function: show_distance
 // --------------------------------------
-// Function: ligth_req
-// --------------------------------------
-int ligth_req()
+int show_distance()
 {
+   int value = 0;
+   value = analogRead(A1);
+   distance = map (value, 0, 1023, 10000, 90000);
+   // while there is enough data for a request
+   if ( (request_received) &&
+        (0 == strcmp("DS:  REQ\n",request)) ) {
+
+      char cstr[5];
+	   ltoa(distance, cstr, 10);
+     
+     if(distance<=0){
+       sprintf(answer,"DS:00000");
+     } 
+     else if(distance > 0 && distance < 10){
+       sprintf(answer,"DS:0000%s",cstr);
+     } 
+     else if(distance >= 10 && distance < 100){
+       sprintf(answer,"DS:000%s",cstr);
+     } 
+     else if(distance >= 100 && distance < 1000){
+       sprintf(answer,"DS:00%s",cstr);
+     } 
+     else if(distance >= 1000 && distance < 10000){
+       sprintf(answer,"DS:0%s",cstr);
+     } 
+     else if(distance >= 10000){
+       sprintf(answer,"DS:%s",cstr);
+     }
+      request_received = false;
+      answer_requested = true;
+   }
+   distance_aux = distance;
+   while (distance_aux  >= 10){
+    distance_aux  = distance_aux  / 10; 
+  }
+
+  digitalWrite(out2, bitRead(distance_aux , 0));  
+  digitalWrite(out3, bitRead(distance_aux, 1));
+  digitalWrite(out4, bitRead(distance_aux , 2));
+  digitalWrite(out5, bitRead(distance_aux , 3));  
+
+}
+   return 0;
+}
+int movment_sensor(){
+
+  int botton_val = 0;
+  botton_val = digitalRead(6); 
+  if(botton_value == 1 && botton == 0) {
+    botton  = 1;
+  }
+  else if(botton== 1 && botton_value== 0){
+     botton  = 0;
+     if(mode == 0){
+       mode = 1;
+     } else if (mode == 2){
+       mode = 0;
+     }
+  }
+  if(speed <= 10 && distance <= 0){
+      mode = 2;
+   }
+  if(mode != 2){
+      double a = 0;
+      if(acc==1){
+         //V = Vo + A T; A = 0.5
+         a = a + 0.5;
+      }
+      else if(brk==1){
+         //V = Vo + A T; A= -0.5
+         a = a - 0.5;
+      }
+      if(slope == -1){
+         //V = Vo + A T; A= -0.25
+         a = a + 0.25;
+      }
+      else if(slope == 1){
+         //V = Vo + A T; A= 0.25
+         a = a - 0.25;
+      }
+
+      distance = distance - (speed*t_distance + (1/2)*a*t_distance*t_distance);
+   } 
+   else {
+      distance = 0;
+   }
+
+   return 0;
+}
+
+// --------------------------------------
+// Function: read_light
+// --------------------------------------
+int read_ligth()
+{
+   int value = 0;
+   value = analogRead(A0);
+   ligth = map (value, 0, 1023, 0, 99);
+}
    // while there is enough data for a request
    if ( (request_received) &&
         (0 == strcmp("LIT: REQ\n",request)) ) {
@@ -116,9 +229,9 @@ int ligth_req()
 	  itoa(ligth, cstr, 10);
      
      if(ligth>=10){
-       sprintf(answer,"LIT: %s%%\n",ptr);
+       sprintf(answer,"LIT: %s\n",ptr);
      } else {
-       sprintf(answer,"LIT: 0%s%%\n",ptr);
+       sprintf(answer,"LIT: 0%s\n",ptr);
      }
     request_received = false;
     requested_answered = true;
@@ -133,12 +246,14 @@ int lamp_req()
    if ( (request_received) && (!requested_answered)){
         if (0 == strcmp("LAM: SET",request)) ) {
            lamp = 1;
+           digitalWrite(7, HIGH);
            sprintf(answer,"LAM:  OK"); 
         }
 
         if( (request_received) &&
         (0 == strcmp("LAM: CLR",request)) ){
            lamp = 0;
+           digitalWrite(7, LOW);
            sprintf(answer,"LAM:  OK");
         }
         request_received = false;
@@ -163,34 +278,20 @@ int speed_req()
       request_received = false;
    }
    return 0;
-}  
-int slope_req(){
-   if ((request_received) && (!requested_answered)){
-      if (0 == strcmp("SLP: REQ\n",request)){
-         if (slope == 1){
-            sprintf(answer, "SLP:  UP\n");
-         }
-         if (slope == -1){
-            sprintf(answer, "SLP:DOWN\n");
-         }  
-         if (slope == 0){
-            sprintf(answer, "SLP:FLAT\n");
-         }
-      request_received = false;
-      requested_answered = true;
-      }
-    
-   }
-   return 0;   
 }
+// --------------------------------------
+// Function: gas_req
+// --------------------------------------  
 int gas_req(){
    if ((request_received) && (!requested_answered)){
       if (0 == strcmp("GAS: SET\n",request)){
          gas = 1;
+         digitalWrite(13, HIGH);
          sprintf(answer, "GAS:  OK\n");
       }
       if(0 == strcmp("GAS: CLR\n", request)){
          gas = 0;
+         digitalWrite(13, LOW);
          sprintf(answer, "GAS:  OK\n", request);
       }
       request_received = false;
@@ -198,15 +299,19 @@ int gas_req(){
    }
       return 0;
 }
-
+// --------------------------------------
+// Function: brake_req
+// --------------------------------------
 int brake_req(){
    if ((request_received) && (!requested_answered)){
       if (0 == strcmp("BRK: SET\n",request)){
          brake = 1;
+         digitalWrite(12, HIGH);
          sprintf(answer, "BRK:  OK\n");
       }
       if (0 == strcmp("BRK: CLR\n",request)){
          brake = 0;
+         digitalWrite(12, LOW);
          sprintf(answer, "BRK:  OK\n");
       }
       request_received = false;
@@ -214,15 +319,21 @@ int brake_req(){
    }
    return 0;  
 }
+// --------------------------------------
+// Function: mix_req
+// --------------------------------------
 int mix_req(){
    if ((request_received) && (!requested_answered)){
       if(0 == strcmp("MIX: SET\n",request)){
          mixer = 1;
+         digitalWrite(11, HIGH);
          sprintf(answer, "MIX:  OK\n");
+         
     
       }
       if(0 == strcmp("MIX: CLR\n",request)){
-         mixer = 1;
+         mixer = 0;
+         digitalWrite(11, LOW);
          sprintf(answer, "MIX:  OK\n");
       }
       request_received = false;
@@ -230,94 +341,10 @@ int mix_req(){
    }
       return 0;
 }
-int arduino_distance(){
-   int value = 0;
-   value = analogRead(1);
-   distance = map (value, 0, 1023, 10000, 90000);
-   return 0;
-}
-int arduino_val_dis(){
-
-  int value = 0;
-  value = digitalRead(6); 
-  if(value == 1 && pushed == 0) {
-    pushed  = 1;
-  }
-  else if(pushed == 1 && value == 0){
-     pushed = 0;
-     if(mode == 0){
-       mode = 1;
-     } else if (mode == 2){
-       mode = 0;
-     }
-  }
-
-   return 0;
-}
-
-int ardduino_lamp()
-{
- if (lamp == 1){
-    digitalWrite(7, HIGH);
-    return 0;
- }
- if (lamp == 0){
-    digitalWrite(7, LOW);
-    return 0;
- }
-}
-int arduino_ligth()
-{
-  int value = 0;
-  value = analogRead(0);
-  ligth = map (value, 0, 1023, 0, 99);
-}
-
-int arduino_gas() {
-   if (gas == 0) {
-      digitalWrite(13, LOW);
-      return 0;
-   }
-   if (gas == 1){
-      digitalWrite(13, HIGH);
-      return 0;
-   }
-   return 0;
-}
-
-int arduino_slope() {
-   slope = 0;
-   if (digitalRead(9) == HIGH) {
-      slope = 1;
-      return 0;
-   }
-   if (digitalRead(8) == HIGH) {
-      slope = -1;
-      return 0;
-   }
-   return 0;  
-}
-
-int arduino_brk(){
-   if(brake == 1){
-      digitalWrite(12, HIGH);
-   }
-   if(brake == 0){
-      digitalWrite(12, LOW);
-   }
-   return 0; 
-}
-int arduino_mixer() {
-  if (mixer == 1) {
-   digitalWrite(11, HIGH);
-   }
-  if (mixer == 0) {
-   digitalWrite(11, LOW);
-  }
-  return 0;
-}
-
-int arduino_speed(){
+// --------------------------------------
+// Function: show_speed
+// --------------------------------------
+int show_speed(){
   double acceleration = 0; 
    if(gas == 1 ){
       acceleration = acceleration + 0.5;
@@ -336,29 +363,30 @@ int arduino_speed(){
    analogWrite(10, map(speed, 40, 70, 0, 255));
    return 0;
 }
-
-
-int all_requests(){
-   speed_req();
-   slope_req();
-   gas_req();
-   brake_req();
-   ligth_req()
-   lamp_req()
-   mix_req();
-   return 0;
+// --------------------------------------
+// Function: read_slope
+// --------------------------------------
+int read_slope(){
+   if ((request_received) && (!requested_answered)){
+      if (0 == strcmp("SLP: REQ\n",request)){
+        slope = 0;
+        if (digitalRead(9) == HIGH) {
+            slope = 1;
+            sprintf(answer, "SLP:  UP\n");
+        }
+        if (digitalRead(8) == HIGH) {
+            slope = -1;
+            sprintf(answer, "SLP:  UP\n");
+        }
+        else{
+            sprintf(answer, "SLP:FLAT\n");
+         }
+      }
+      request_received = false;
+      requested_answered = true;
+      }
+   return 0;   
 }
-
-int all_tasks(){
-   arduino_gas();
-   arduino_brk();
-   arduino_mixer();
-   arduino_slope();
-   arduino_ligth();
-   ardduino_lamp();
-   return 0;
-}
-
 
 // --------------------------------------
 // Function: setup
@@ -368,11 +396,12 @@ void setup()
    // Setup Serial Monitor
    Serial.begin(9600);
 
-   Wire.begin(SLAVE_ADDR);
-  
-  // Function to run when data received from master
-   Wire.onReceive(comm_server);
-
+   pinMode(2, OUTPUT);
+   pinMode(3, OUTPUT);
+   pinMode(4, OUTPUT);
+   pinMode(5, OUTPUT);
+   pinMode(6, INPUT);
+   pinMode(7, OUTPUT)
    pinMode(8, INPUT);
    pinMode(9, INPUT);
    pinMode(10, OUTPUT);
@@ -388,9 +417,44 @@ void setup()
 void loop()
 {
    double start = millis();
-   arduino_speed();
-   all_tasks();
-   all_requests();
+   switch (mode){
+   case 0:
+      comm_server();
+      speed_req();
+      gas_req();
+      mix_req();
+      show_speed();
+      read_slope();
+      read_ligth();
+      lamp_req();
+      show_distance();
+      movment_sensor();
+
+   case 1:
+      comm_server();
+      speed_req();
+      gas_req();
+      mix_req();
+      show_speed();
+      read_slope();
+      read_ligth();
+      lamp_req();
+      show_distance();
+      movment_sensor();
+
+   case 2:
+      comm_server();
+      speed_req();
+      gas_req();
+      mix_req();
+      show_speed();
+      read_slope();
+      read_ligth();
+      lamp_req();
+      show_distance();
+      movment_sensor();
+   }
+
 
    double end = millis();
    delay(100-(end-start));
