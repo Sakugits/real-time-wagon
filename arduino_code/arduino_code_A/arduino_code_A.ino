@@ -6,7 +6,7 @@
 #include <Wire.h>
 
 // --------------------------------------
-// Global Constants
+// Global Constants a
 // --------------------------------------
 #define SLAVE_ADDR 0x8
 #define MESSAGE_SIZE 9
@@ -116,33 +116,16 @@ int speed_req()
    }
    return 0;
 }  
-int slope_req(){
-   if ((request_received) && (!requested_answered)){
-      if (0 == strcmp("SLP: REQ\n",request)){
-         if (slope == 1){
-            sprintf(answer, "SLP:  UP\n");
-         }
-         if (slope == -1){
-            sprintf(answer, "SLP:DOWN\n");
-         }  
-         if (slope == 0){
-            sprintf(answer, "SLP:FLAT\n");
-         }
-      request_received = false;
-      requested_answered = true;
-      }
-    
-   }
-   return 0;   
-}
 int gas_req(){
    if ((request_received) && (!requested_answered)){
       if (0 == strcmp("GAS: SET\n",request)){
          gas = 1;
+         digitalWrite(13, HIGH);
          sprintf(answer, "GAS:  OK\n");
       }
       if(0 == strcmp("GAS: CLR\n", request)){
          gas = 0;
+         digitalWrite(13, LOW);
          sprintf(answer, "GAS:  OK\n", request);
       }
       request_received = false;
@@ -155,10 +138,12 @@ int brake_req(){
    if ((request_received) && (!requested_answered)){
       if (0 == strcmp("BRK: SET\n",request)){
          brake = 1;
+         digitalWrite(12, HIGH);
          sprintf(answer, "BRK:  OK\n");
       }
       if (0 == strcmp("BRK: CLR\n",request)){
          brake = 0;
+         digitalWrite(12, LOW);
          sprintf(answer, "BRK:  OK\n");
       }
       request_received = false;
@@ -170,11 +155,14 @@ int mix_req(){
    if ((request_received) && (!requested_answered)){
       if(0 == strcmp("MIX: SET\n",request)){
          mixer = 1;
+         digitalWrite(11, HIGH);
          sprintf(answer, "MIX:  OK\n");
+         
     
       }
       if(0 == strcmp("MIX: CLR\n",request)){
-         mixer = 1;
+         mixer = 0;
+         digitalWrite(11, LOW);
          sprintf(answer, "MIX:  OK\n");
       }
       request_received = false;
@@ -183,51 +171,7 @@ int mix_req(){
       return 0;
 }
 
-int arduino_gas() {
-   if (gas == 0) {
-      digitalWrite(13, LOW);
-      return 0;
-   }
-   if (gas == 1){
-      digitalWrite(13, HIGH);
-      return 0;
-   }
-   return 0;
-}
-
-int arduino_slope() {
-   slope = 0;
-   if (digitalRead(9) == HIGH) {
-      slope = 1;
-      return 0;
-   }
-   if (digitalRead(8) == HIGH) {
-      slope = -1;
-      return 0;
-   }
-   return 0;  
-}
-
-int arduino_brk(){
-   if(brake == 1){
-      digitalWrite(12, HIGH);
-   }
-   if(brake == 0){
-      digitalWrite(12, LOW);
-   }
-   return 0; 
-}
-int arduino_mixer() {
-  if (mixer == 1) {
-   digitalWrite(11, HIGH);
-   }
-  if (mixer == 0) {
-   digitalWrite(11, LOW);
-  }
-  return 0;
-}
-
-int arduino_speed(){
+int show_speed(){
   double acceleration = 0; 
    if(gas == 1 ){
       acceleration = acceleration + 0.5;
@@ -247,44 +191,27 @@ int arduino_speed(){
    return 0;
 }
 
-
-int all_requests(){
-   speed_req();
-   slope_req();
-   gas_req();
-   brake_req();
-  // mix_req();
-   return 0;
+int read_slope(){
+   if ((request_received) && (!requested_answered)){
+      if (0 == strcmp("SLP: REQ\n",request)){
+        slope = 0;
+        if (digitalRead(9) == HIGH) {
+            slope = 1;
+            sprintf(answer, "SLP:  UP\n");
+        }
+        if (digitalRead(8) == HIGH) {
+            slope = -1;
+            sprintf(answer, "SLP:  UP\n");
+        }
+        else{
+            sprintf(answer, "SLP:FLAT\n");
+         }
+      }
+      request_received = false;
+      requested_answered = true;
+      }
+   return 0;   
 }
-
-int all_tasks(){
-   arduino_gas();
-   arduino_brk();
-  // arduino_mixer();
-   arduino_slope();
-   return 0;
-}
-
-/*
-int modo_A(){
-   if (ciclo %2 == 0) {
-      all_tasks();
-      comm_server();
-      ciclo +=1;
-      tiempo = millis();
-   }else{
-      all_tasks();
-      ciclo +=1;
-      tiempo = millis();
-   }
-   sc_tiempo_ejecucion_m = tiempo - tiempo_total;
-   lag = sc_m - sc_tiempo_ejecucion_m;
-   delay(lag);
-   tiempo_total += sc_m;
-   return 0;
-}
-*/
-
 
 // --------------------------------------
 // Function: setup
@@ -293,11 +220,6 @@ void setup()
 {
    // Setup Serial Monitor
    Serial.begin(9600);
-
-   Wire.begin(SLAVE_ADDR);
-  
-  // Function to run when data received from master
-   Wire.onReceive(comm_server);
 
    pinMode(8, INPUT);
    pinMode(9, INPUT);
@@ -314,9 +236,12 @@ void setup()
 void loop()
 {
    double start = millis();
-   arduino_speed();
-   all_tasks();
-   all_requests();
+   comm_server();
+   speed_req();
+   gas_req();
+   mix_req();
+   show_speed();
+   read_slope();
 
    double end = millis();
    delay(100-(end-start));
