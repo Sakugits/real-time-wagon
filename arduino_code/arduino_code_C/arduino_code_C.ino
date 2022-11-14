@@ -52,19 +52,6 @@ int brake = 0;
 // 1 = on, 0 = off
 int mixer = 0; 
 
-int sc_s = 0.1;
-
-//ciclo secundario en milisegundos 
-unsigned long sc_m = 100;
-// tiempo de ejecucion en milisegundos del ciclo secundario
-unsigned long sc_tiempo_ejecucion_m; 
-
-unsigned long tiempo;
-unsigned long tiempo_total;
-unsigned long lag; 
-
-int ciclo = 1 ;
-int resto_cilco = 1;
 // --------------------------------------
 // Function: comm_server
 // --------------------------------------
@@ -221,7 +208,6 @@ int read_ligth()
    int value = 0;
    value = analogRead(A0);
    ligth = map (value, 0, 1023, 0, 99);
-}
    // while there is enough data for a request
    if ( (request_received) &&
         (0 == strcmp("LIT: REQ\n",request)) ) {
@@ -269,77 +255,79 @@ int speed_req()
    // If there is a request not answered, check if this is the one
    if ( (request_received) && (!requested_answered) &&
         (0 == strcmp("SPD: REQ\n",request)) ) {
+
       // send the answer for speed request
       char num_str[5];
       dtostrf(speed,4,1,num_str);
       sprintf(answer,"SPD:%s\n",num_str);
+
       // set request as answered
       requested_answered = true;
-      request_received = false;
    }
    return 0;
 }
 // --------------------------------------
 // Function: gas_req
-// --------------------------------------  
+// -------------------------------------- 
 int gas_req(){
-   if ((request_received) && (!requested_answered)){
-      if (0 == strcmp("GAS: SET\n",request)){
+   if ( (request_received) && (!requested_answered) &&
+        (0 == strcmp("GAS: SET\n",request)) ) {
          gas = 1;
          digitalWrite(13, HIGH);
-         sprintf(answer, "GAS:  OK\n");
+         requested_answered = true;
+         sprintf(answer,"GAS:  OK\n");
       }
-      if(0 == strcmp("GAS: CLR\n", request)){
+      if ( (request_received) && (!requested_answered) &&
+        (0 == strcmp("GAS: CLR\n",request)) ) {
          gas = 0;
          digitalWrite(13, LOW);
-         sprintf(answer, "GAS:  OK\n", request);
+         requested_answered = true;
+         sprintf(answer,"GAS:  OK\n", request);
       }
-      request_received = false;
-      requested_answered = true;
-   }
       return 0;
 }
 // --------------------------------------
 // Function: brake_req
 // --------------------------------------
 int brake_req(){
-   if ((request_received) && (!requested_answered)){
-      if (0 == strcmp("BRK: SET\n",request)){
+   if ( (request_received) && (!requested_answered) &&
+        (0 == strcmp("BRK: SET\n",request)) ) {
          brake = 1;
          digitalWrite(12, HIGH);
-         sprintf(answer, "BRK:  OK\n");
+         requested_answered = true;
+         sprintf(answer,"BRK:  OK\n");
       }
-      if (0 == strcmp("BRK: CLR\n",request)){
+      
+   if ( (request_received) && (!requested_answered) &&
+        (0 == strcmp("BRK: CLR\n",request)) ) {
          brake = 0;
          digitalWrite(12, LOW);
-         sprintf(answer, "BRK:  OK\n");
+         requested_answered = true;
+         sprintf(answer,"BRK:  OK\n");
       }
-      request_received = false;
-      requested_answered = true;
-   }
-   return 0;  
+   return 0; 
 }
 // --------------------------------------
 // Function: mix_req
-// --------------------------------------
+// --------------------------------------   
 int mix_req(){
-   if ((request_received) && (!requested_answered)){
-      if(0 == strcmp("MIX: SET\n",request)){
+   if ( (request_received) && (!requested_answered) &&
+       (0 == strcmp("MIX: SET\n",request)) )
+   {
          mixer = 1;
          digitalWrite(11, HIGH);
+         requested_answered = true;
          sprintf(answer, "MIX:  OK\n");
-         
-    
-      }
-      if(0 == strcmp("MIX: CLR\n",request)){
+   }
+    if ( (request_received) && (!requested_answered) &&
+      (0 == strcmp("MIX: CLR\n",request)) )
+      {
          mixer = 0;
          digitalWrite(11, LOW);
+         requested_answered = true;
          sprintf(answer, "MIX:  OK\n");
       }
-      request_received = false;
-      requested_answered = true;
-   }
-      return 0;
+  return 0;
 }
 // --------------------------------------
 // Function: show_speed
@@ -360,30 +348,39 @@ int show_speed(){
       acceleration =  acceleration + 0.25; 
       }
    speed = speed +  (acceleration * 0.1);
-   analogWrite(10, map(speed, 40, 70, 0, 255));
+   
+   if(speed < 40 ){
+      digitalWrite(10, 0);
+   } else if (speed > 70){
+      digitalWrite(10, 1);
+   } else {
+      int ligth_speed = map (speed, 40, 70, 0, 255);
+      analogWrite(10, ligth_speed);
+   }
    return 0;
+ 
 }
 // --------------------------------------
 // Function: read_slope
 // --------------------------------------
 int read_slope(){
-   if ((request_received) && (!requested_answered)){
-      if (0 == strcmp("SLP: REQ\n",request)){
+   if ((request_received) && (!requested_answered)&&
+      (0 == strcmp("SLP: REQ\n",request)) ){
         slope = 0;
         if (digitalRead(9) == HIGH) {
             slope = 1;
-            sprintf(answer, "SLP:  UP\n");
+            requested_answered = true;
+            sprintf(answer,"SLP:  UP\n");
         }
         if (digitalRead(8) == HIGH) {
             slope = -1;
-            sprintf(answer, "SLP:  UP\n");
+            requested_answered = true;
+            sprintf(answer,"SLP:DOWN\n");
         }
         else{
-            sprintf(answer, "SLP:FLAT\n");
+            requested_answered = true;
+            sprintf(answer,"SLP:FLAT\n");
          }
-      }
-      request_received = false;
-      requested_answered = true;
       }
    return 0;   
 }
@@ -422,6 +419,7 @@ void loop()
       comm_server();
       speed_req();
       gas_req();
+      brake_req();
       mix_req();
       show_speed();
       read_slope();
@@ -434,6 +432,7 @@ void loop()
       comm_server();
       speed_req();
       gas_req();
+      brake_req();
       mix_req();
       show_speed();
       read_slope();
@@ -446,6 +445,7 @@ void loop()
       comm_server();
       speed_req();
       gas_req();
+      brake_req();
       mix_req();
       show_speed();
       read_slope();
